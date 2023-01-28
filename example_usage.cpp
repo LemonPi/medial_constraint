@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include "minimal_free_space_constraints.h"
 
@@ -79,6 +80,17 @@ void read_contact_pc(std::ifstream &input, PointsPerPoke& points_per_poke) {
     }
 }
 
+template <
+    class result_t   = std::chrono::milliseconds,
+    class clock_t    = std::chrono::steady_clock,
+    class duration_t = std::chrono::milliseconds
+>
+auto since(std::chrono::time_point<clock_t, duration_t> const& start)
+{
+    return std::chrono::duration_cast<result_t>(clock_t::now() - start);
+}
+
+
 int main(int argc, char **argv) {
     std::string freespace_file(argv[1]);
     std::string contact_file(argv[2]);
@@ -117,6 +129,7 @@ int main(int argc, char **argv) {
         int num_pokes = kv.first;
         Points& points = kv.second;
 
+        auto start = std::chrono::steady_clock::now();
         std::cout << "compute ball: poke " << num_pokes << " with " << points.size() << " points" << std::endl;
         compute_medial_axis_distance(points, r_max, min_angle,
                                     smoothing_neighborhood_size, smoothing_factor);
@@ -148,8 +161,9 @@ int main(int argc, char **argv) {
             }
         }
 
-        std::cout << "poke " << num_pokes << " with " << balls_used << " balls used" << std::endl;
-        output_stream << num_pokes << " " << balls_used << std::endl;
+        auto elapsed = static_cast<float>(since(start).count()) / 1000;
+        std::cout << "poke " << num_pokes << " with " << balls_used << " balls used, elapsed " << elapsed << std::endl;
+        output_stream << num_pokes << " " << balls_used << " " << elapsed << std::endl;
 
         for (size_t i = 0; i < balls.size(); i++) {
             const auto& b = balls[i];
